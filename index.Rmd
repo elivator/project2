@@ -46,15 +46,47 @@ class_diag <- function(score, truth, positive, cutoff=.5){
 
 # Mining, Classification, Prediction
 
-## Name and EID here
+## Elicenda Tovar (et22536)
 
 ### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information
+Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information. HELPmiss:	Health Evaluation and Linkage to Primary Care. Datasets 1-4 were used in project one. All of the data was obtained from the Texas county health ranking website. The new data includes the proportion of adult individuals that are considered obese in each of the Texas counties in 2017 and the proportion of the population who are low-income and do not live close to a grocery store in 2015.  
 
 ```{R}
 library(tidyverse)
-# read your datasets in here, e.g., with read_csv()
+data1 <- read.csv("~/uninsured.csv")
+data2 <- read.csv("~/unemployment.csv")
+data3 <- read.csv("~/pmhd.csv") #poor mental health days
+data4 <- read.csv("~/pphd.csv") #poor physical health days
+data5 <- read.csv("~/obesity.csv") #proportion of obese individuals in each county
+data6 <- read.csv("~/LAHF.csv") #proportion of individuals in each county with limited access to healthy foods.
+
+# cleaning the detasets 
+data1<- subset(data1, select=c(County,X..Uninsured)) 
+data1<- rename(data1, Uninsured=X..Uninsured)
+count1<-data1 %>% group_by(County) %>% summarise(n())
+
+data2<- subset(data2, select=c(County,X..Unemployed, Labor.Force))
+data2<-rename(data2, Unemployed=X..Unemployed)
+count2<-data2 %>% group_by(County) %>% summarise(n())
+
+data3<- subset(data3, select=c(County,County.Value.))
+data3<-rename(data3, PoorMHdays=County.Value.)
+cunt3<-data3 %>% group_by(County) %>% summarise(n())
+
+data4<- subset(data4, select=c(County,County.Value.))
+data4<-rename(data4, PoorPHdays=County.Value.)
+count4<-data4 %>% group_by(County) %>% summarise(n())
+
+unique<-union(data1$County, data2$County)
+unique2<-union(data3$County, data4$County)
+
+# joining code below 
+full<- full_join(data1, data2, by=c("County"))
+full2<- full_join(full, data3, by=c("County"))
+full3<- full_join(full2, data4, by=c("County"))
+full4<- full_join(full3, data5, by=c("County"))
+full5<- full_join(full4, data6, by=c("County"))
 
 # if your dataset needs tidying, do so here
 
