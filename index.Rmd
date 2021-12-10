@@ -169,12 +169,7 @@ diags<-rbind(diags,class_diag(probs,truth, positive="1"))
 summarise_all(diags, mean)
 
 ```
-Both models are 
-Discuss the results in a paragraph. How well is your model predicting new observations per CV AUC? Do you see signs of overfitting?
-
-Discussion here
-
-The maximum predicted probability was 0.695. 
+The maximum predicted probability was 0.695. Both models are able to predict similarly since the linear classifier's AUAC is 0.8083 and the k-fold cross validation's AUC is 0.80391. These do no show signs of overfitting because the AUC for the k-fold is not much larger than the AUC for the linear classifier. Both AUC's are good at predicting the College variable since they are in they 0.8-0.9 range.  
 
 ### Non-Parametric Classifier
 
@@ -278,7 +273,7 @@ y=r.datafinal['P.Obese'] #lack of access to healthy food
 plt.scatter(x,y)
 ```
 
-Discussion
+I imported numpy to bring the suite of functions to python and matplotlib.pyplot to make a scatterplot with the 
 
 ### Concluding Remarks
 
