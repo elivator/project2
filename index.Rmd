@@ -103,7 +103,6 @@ ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1
 clustdata<- datafinal %>% select(P.Obese, P.LAHF,SomeCollege)
 set.seed(123)
 pam1<- clustdata %>% pam(k=2)
-pam1
 
 #visualize
 library(GGally)
@@ -125,7 +124,7 @@ pcad$scores %>% cor %>% round() #3 PCAs not correlated w each other
 pcad1 <- data.frame(PC1 = pcad$scores[,1], PC2 = pcad$scores[,2], PC3=pcad$scores[,3])
 pcad1 <- pcad1 %>% mutate(SomeCollege = clustdatnona$SomeCollege)
 dim(pcad1)
-pcad1
+#pcad1
 
 #visualize 
 ggplot(pcad1, aes(PC1, PC2, PC3)) + geom_point(aes(color = SomeCollege)) + theme_dark()
@@ -142,13 +141,12 @@ Discussions of PCA here.
 # linear classifier code here
 nonadata<- na.omit(datafinal)
 logfit <- glm(nonadata$SomeCollege ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = nonadata, family = "binomial")
-logfit
 score <- predict(logfit, type = "response")
 score %>% round(3) #%>% max()
 
 #confusion matrix
 class_diag(score, truth = nonadata$College, positive = 1)  
-#table(truth= nonadata$College, predictions= logfit>.5)
+table(truth= nonadata$College, predictions= score>.5)
 
 ```
 
@@ -173,6 +171,7 @@ diags<-rbind(diags,class_diag(probs,truth, positive="1"))
 summarise_all(diags, mean)
 
 ```
+Both models are 
 Discuss the results in a paragraph. How well is your model predicting new observations per CV AUC? Do you see signs of overfitting?
 
 Discussion here
@@ -186,10 +185,7 @@ library(caret)
 set.seed(1234)
 # non-parametric classifier; K-nearest-neighbors 
 knn_fit <- knn3(nonadata$College ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = nonadata)
-knn_fit 
-
 pred_knn <- predict(knn_fit, newdata=nonadata)[, 2]
-pred_knn
 class_diag(pred_knn, nonadata$College, positive = "1")
 
 #confusion matrix 
@@ -279,8 +275,8 @@ plot$use("Agg", force = TRUE)
 import matplotlib.pyplot as plt
 import numpy as np 
 
-x=r.datafinal['P.Obese']
-y=r.datafinal['SomeCollege']
+x=r.datafinal['SomeCollege']
+y=r.datafinal['P.LAHF'] #lack of access to healthy food 
 plt.scatter(x,y)
 ```
 
