@@ -114,22 +114,21 @@ pamd %>% ggpairs(columns = 1:3, aes(color=cluster))
 Include a paragraph or two describing results found, interpreting the clusters in terms of the original variables and observations, discussing goodness of fit of the cluster solution, etc.
 
 ### Dimensionality Reduction with PCA
-Perform PCA on at least three of your numeric variables (3 is the bare minimum: using more/all of them will make this much more interesting)! You can use eigen() on the correlation matrix, but princomp(..., cor=T) is probably going to be easier.
-
-Visualize the observations’ PC scores for the PCs you retain (keep at least PC1 and PC2) in ggplot. A biplot with fviz_pca() is fine too!
-
 
 ```{R}
 # PCA code here
-pcad <- princomp(na.omit(clustdata), cor = T)
+clustdatnona<-na.omit(clustdata)
+pcad <- princomp(clustdatnona, cor = T)
 summary(pcad, loadings=T)
 pcad$scores %>% cor %>% round() #3 PCAs not correlated w each other 
 
 pcad1 <- data.frame(PC1 = pcad$scores[,1], PC2 = pcad$scores[,2], PC3=pcad$scores[,3])
-#pcad1 <- pcad1 %>% mutate(SomeCollege = clustdata$SomeCollege) #THIS ONE 253????
+pcad1 <- pcad1 %>% mutate(SomeCollege = clustdatnona$SomeCollege)
+dim(pcad1)
+pcad1
 
 #visualize 
-#ggplot(pcad1, aes(PC1, PC2, PC3)) + geom_point(aes(color = SomeCollege)) + theme_dark()
+ggplot(pcad1, aes(PC1, PC2, PC3)) + geom_point(aes(color = SomeCollege)) + theme_dark()
 ```
 
 Include a paragraph or two describing results with a focus on what it means to score high/low on each PC you retain (interpreting each PC you retained in terms of the original variables/loadings); also discuss how much of the total variance in your dataset is explained by these PCs.
@@ -138,34 +137,41 @@ Discussions of PCA here.
 
 
 ###  Linear Classifier
-Using a linear classifer, (e.g., linear regression, logistic regression, SVM), predict a binary variable (response) from ALL of the rest of the numeric variables in your dataset (if you have 10+, OK to just pick 10).
-
-Train the model to the entire dataset and then use it to get predictions for all observations. Run the class_diag function or equivalent to get in-sample performance and interpret, including a discussion of how well the model is doing per AUC. Finally, report a confusion matrix.
-
-Perform k-fold CV on this same model (fine to use caret). Run the class_diag function or equivalent to get out-of-sample performance averaged across your k folds and discuss how well is your model predicting new observations per CV AUC.
 
 ```{R}
 # linear classifier code here
-fit <- glm(datafinal$SomeCollege ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = datafinal, family = "binomial")
-fit
-score <- predict(fit, type = "response")
+nonadata<- na.omit(datafinal)
+logfit <- glm(nonadata$SomeCollege ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = nonadata, family = "binomial")
+logfit
+score <- predict(logfit, type = "response")
 score %>% round(3) #%>% max()
 
-#train 
-
-
-#in-sample performance 
-#class_diag(score, truth = datafinal$College, positive = 1) #same length? 
-
-# confusion matrix
-
-
+#confusion matrix
+class_diag(score, truth = nonadata$College, positive = 1)  
+#table(truth= nonadata$College, predictions= logfit>.5)
 
 ```
 
 ```{R}
-#k-fold CV 
-# cross-validation of linear classifier here
+# cross-validation of linear classifier here (k-fold CV)
+set.seed(1234)
+k=10
+data<-nonadata[sample(nrow(nonadata)),] 
+folds<-rep(1:k, length.out = nrow(nonadata)) 
+
+diags<-NULL
+for(i in 1:k){
+  train<-data[folds!=i,] 
+  test<-data[folds==i,]
+  truth<-test$College
+fit <- glm(College == "1" ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = train, family = "binomial")  
+  
+probs<-predict(fit,newdata = test,type="response")
+diags<-rbind(diags,class_diag(probs,truth, positive="1"))
+}  
+
+summarise_all(diags, mean)
+
 ```
 Discuss the results in a paragraph. How well is your model predicting new observations per CV AUC? Do you see signs of overfitting?
 
@@ -174,24 +180,46 @@ Discussion here
 The maximum predicted probability was 0.695. 
 
 ### Non-Parametric Classifier
-Fit a non-parametric classifier (e.g., k-nearest-neighbors, classification tree) to the exact same dataset/variables you used with the linear classifier (same response variable too).
-
-Train the model to the entire dataset and then use it to get predictions for all observations. Run the class_diag function or equivalent to get in-sample performance and interpret, including a discussion of how well the model is doing per AUC. Finally, report a confusion matrix.
-
-Perform k-fold CV on this same model (fine to use caret). Run the class_diag function or equivalent to get out-of-sample performance averaged across your k folds.
 
 ```{R}
 library(caret)
-# non-parametric classifier code here
+set.seed(1234)
+# non-parametric classifier; K-nearest-neighbors 
+knn_fit <- knn3(nonadata$College ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = nonadata)
+knn_fit 
 
+pred_knn <- predict(knn_fit, newdata=nonadata)[, 2]
+pred_knn
+class_diag(pred_knn, nonadata$College, positive = "1")
 
 #confusion matrix 
-#table(actual=, predicted=(prob_knn)>0.5) %>% addmargins() 
+table(truth= nonadata$College, predictions= pred_knn>.5)
 
 ```
 
 ```{R}
 # cross-validation of np classifier here
+set.seed(1234)
+k = 10
+
+data <- sample_frac(nonadata)  #randomly order rows
+folds <- rep(1:k, length.out = nrow(data))  #create folds
+
+diags <- NULL
+
+i = 1
+for (i in 1:k) {
+    train <- data[folds != i, ]
+    test <- data[folds == i, ]
+    truth <- test$College
+    # train model
+    fit <- knn3(College == "1" ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = train)
+    # test model
+    probs <- predict(fit, newdata = test)[, 2]
+    diags <- rbind(diags, class_diag(probs, truth, positive = "1"))
+}
+summarize_all(diags, mean)
+
 ```
 Discuss the results in a paragraph. How well is your model predicting new observations per CV AUC? Do you see signs of overfitting? How does your nonparametric model compare with the linear model in its cross-validation performance?
 
@@ -199,22 +227,41 @@ Discussion
 
 
 ### Regression/Numeric Prediction
-Fit a linear regression model or regression tree to your entire dataset, predicting one of your numeric variables from at least 2 other variables
-
-Report the MSE for the overall dataset
-
-Perform k-fold CV on this same model (fine to use caret). Calculate the average MSE across your k testing folds.
 
 ```{R}
 # regression model code here
+nonadata<- na.omit(datafinal)
+logfit <- lm(nonadata$SomeCollege ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = nonadata, family = "binomial")  
+
+pred<-predict(logfit)
+
+#MSE 
+mean((nonadata$SomeCollege-pred)^2)
 ```
 
 ```{R}
-# cross-validation of regression model here
-```
-Does this model show signs of overfitting? Discussion the results in a paragraph
+# cross-validation of regression model here classification 4 slide 45 
+set.seed(1234)
+k=10
+data<-nonadata[sample(nrow(nonadata)),] #randomly order rows
+folds<-cut(seq(1:nrow(nonadata)),breaks=k,labels=F) #create folds
+MSE<-NULL
 
-Overfitting if mse is larger 
+for(i in 1:k){
+  train<-data[folds!=i,]
+  test<-data[folds==i,]
+  truth<-test$SomeCollege
+
+  ## Fit linear regression model to training set
+  fit<-lm(SomeCollege~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF,data=train)
+  yhat<-predict(fit,newdata=test)
+  ## Compute prediction error  (MSE) for fold i
+  MSE[i]<-mean((test$SomeCollege-yhat)^2) 
+}
+mean(MSE) 
+```
+
+The prediction on the linear regression has the ability to predict similarly to the cross validation training set. The means squared error is 0.009 and 0.010, respectively. This does not show any signs of overfitting since the cross validation means squared error is not much larger than the linear regression MSE. 
 
 ### Python 
 
