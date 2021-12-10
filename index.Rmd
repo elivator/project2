@@ -276,7 +276,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 
 x=r.datafinal['SomeCollege']
-y=r.datafinal['P.LAHF'] #lack of access to healthy food 
+y=r.datafinal['P.Obese'] #lack of access to healthy food 
 plt.scatter(x,y)
 ```
 
