@@ -1537,7 +1537,7 @@ div.tocify {
 <h2>Elicenda Tovar (et22536)</h2>
 <div id="introduction" class="section level3">
 <h3>Introduction</h3>
-<p>Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information. HELPmiss: Health Evaluation and Linkage to Primary Care. Datasets 1-4 were used in project one. All of the data was obtained from the Texas county health ranking website. The new data includes the proportion of adult individuals that are considered obese in each of the Texas counties in 2017 and the proportion of the population who are low-income and do not live close to a grocery store in 2015. The binary variable was created with the proportion of individuals in each county that have some college education from 2015-2919. I chose 49% and above to be the cut off for the “1” value.</p>
+<p>Datasets 1 and 2 were used in project one. All of the data was obtained from the Texas county health ranking website. The new data includes the proportion of adult individuals that are considered obese in each of the Texas counties in 2017 and the proportion of the population who are low-income and do not live close to a grocery store in 2015. The binary variable was created with the proportion of individuals in each county that have some college education from 2015-2919. I chose 49% and above to be the cut off for the “1” positive value. This topic and variables are interesting to me because I volunteer at a free healthcare clinic and most of the diabetic and obese patients do not have a college education.</p>
 <pre class="r"><code>library(tidyverse)
 data1 &lt;- read.csv(&quot;~/pmhd.csv&quot;)  #poor mental health days
 data2 &lt;- read.csv(&quot;~/pphd.csv&quot;)  #poor physical health days
