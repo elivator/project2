@@ -50,33 +50,25 @@ class_diag <- function(score, truth, positive, cutoff=.5){
 
 ### Introduction 
 
-Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information. HELPmiss:	Health Evaluation and Linkage to Primary Care. Datasets 1-4 were used in project one. All of the data was obtained from the Texas county health ranking website. The new data includes the proportion of adult individuals that are considered obese in each of the Texas counties in 2017 and the proportion of the population who are low-income and do not live close to a grocery store in 2015.  
+Paragraph or two introducing your datasets and variables, why they are interesting to you, etc. See instructions for more information. HELPmiss:	Health Evaluation and Linkage to Primary Care. Datasets 1-4 were used in project one. All of the data was obtained from the Texas county health ranking website. The new data includes the proportion of adult individuals that are considered obese in each of the Texas counties in 2017 and the proportion of the population who are low-income and do not live close to a grocery store in 2015. The binary variable was created with the proportion of individuals in each county that have some college education from 2015-2919. I chose 49% and above to be the cut off for the 
+"1" value. 
 
 ```{R}
 library(tidyverse)
-data1 <- read.csv("~/uninsured.csv")
-data2 <- read.csv("~/unemployment.csv")
-data3 <- read.csv("~/pmhd.csv") #poor mental health days
-data4 <- read.csv("~/pphd.csv") #poor physical health days
-data5 <- read.csv("~/obesity.csv") #proportion of obese individuals in each county
-data6 <- read.csv("~/LAHF.csv") #proportion of individuals in each county with limited access to healthy foods.
+data1 <- read.csv("~/pmhd.csv") #poor mental health days
+data2 <- read.csv("~/pphd.csv") #poor physical health days
+data3 <- read.csv("~/obesity.csv") #proportion of obese individuals in each county
+data4 <- read.csv("~/LAHF.csv") #proportion of individuals in each county with limited access to healthy foods.
+data5 <- read.csv("~/SomeCollege.csv") # proportion of individuals with some college education 
 
 # cleaning the detasets 
-data1<- subset(data1, select=c(County,X..Uninsured)) 
-data1<- rename(data1, Uninsured=X..Uninsured)
-count1<-data1 %>% group_by(County) %>% summarise(n())
+data1<- subset(data1, select=c(County,County.Value.))
+data1<-rename(data1, PoorMHdays=County.Value.)
+cunt1<-data1 %>% group_by(County) %>% summarise(n())
 
-data2<- subset(data2, select=c(County,X..Unemployed, Labor.Force))
-data2<-rename(data2, Unemployed=X..Unemployed)
+data2<- subset(data2, select=c(County,County.Value.))
+data2<-rename(data2, PoorPHdays=County.Value.)
 count2<-data2 %>% group_by(County) %>% summarise(n())
-
-data3<- subset(data3, select=c(County,County.Value.))
-data3<-rename(data3, PoorMHdays=County.Value.)
-cunt3<-data3 %>% group_by(County) %>% summarise(n())
-
-data4<- subset(data4, select=c(County,County.Value.))
-data4<-rename(data4, PoorPHdays=County.Value.)
-count4<-data4 %>% group_by(County) %>% summarise(n())
 
 unique<-union(data1$County, data2$County)
 unique2<-union(data3$County, data4$County)
@@ -86,11 +78,11 @@ full<- full_join(data1, data2, by=c("County"))
 full2<- full_join(full, data3, by=c("County"))
 full3<- full_join(full2, data4, by=c("County"))
 full4<- full_join(full3, data5, by=c("County"))
-full5<- full_join(full4, data6, by=c("County"))
 
-# if your dataset needs tidying, do so here
+newfull <- mutate(full4, GoodMH = ifelse(PoorMHdays < 4.5 ,"Yes", "No"))  #made a new column with Good Mental Health days 
+datafinal <- mutate(newfull, College = ifelse(SomeCollege > 0.49 ,"1", "0")) #creating a binary variable 
 
-# any other code here
+
 ```
 
 ### Cluster Analysis
@@ -98,46 +90,120 @@ full5<- full_join(full4, data6, by=c("County"))
 ```{R}
 library(cluster)
 # clustering code here
+clustdata <- datafinal[c(4:6)]
+#sil_Width with PAM 
+sil_width<-vector() 
+for(i in 2:10){  
+  kms <- pam(clustdata,k=i) 
+  sil_width[i]<-kms$silinfo$avg.width
+}
+ggplot()+geom_line(aes(x=1:10,y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
+
+
+clustdata<- datafinal %>% select(P.Obese, P.LAHF,SomeCollege)
+set.seed(123)
+pam1<- clustdata %>% pam(k=2)
+pam1
+
+#visualize
+library(GGally)
+pamd<-clustdata %>% mutate(cluster=as.factor(pam1$clustering))
+pamd %>% ggpairs(columns = 1:3, aes(color=cluster))
 ```
 
-Discussion of clustering here
-    
-    
+Include a paragraph or two describing results found, interpreting the clusters in terms of the original variables and observations, discussing goodness of fit of the cluster solution, etc.
+
 ### Dimensionality Reduction with PCA
+Perform PCA on at least three of your numeric variables (3 is the bare minimum: using more/all of them will make this much more interesting)! You can use eigen() on the correlation matrix, but princomp(..., cor=T) is probably going to be easier.
+
+Visualize the observations’ PC scores for the PCs you retain (keep at least PC1 and PC2) in ggplot. A biplot with fviz_pca() is fine too!
+
 
 ```{R}
 # PCA code here
+pcad <- princomp(na.omit(clustdata), cor = T)
+summary(pcad, loadings=T)
+pcad$scores %>% cor %>% round() #3 PCAs not correlated w each other 
+
+pcad1 <- data.frame(PC1 = pcad$scores[,1], PC2 = pcad$scores[,2], PC3=pcad$scores[,3])
+#pcad1 <- pcad1 %>% mutate(SomeCollege = clustdata$SomeCollege) #THIS ONE 253????
+
+#visualize 
+#ggplot(pcad1, aes(PC1, PC2, PC3)) + geom_point(aes(color = SomeCollege)) + theme_dark()
 ```
+
+Include a paragraph or two describing results with a focus on what it means to score high/low on each PC you retain (interpreting each PC you retained in terms of the original variables/loadings); also discuss how much of the total variance in your dataset is explained by these PCs.
 
 Discussions of PCA here. 
 
+
 ###  Linear Classifier
+Using a linear classifer, (e.g., linear regression, logistic regression, SVM), predict a binary variable (response) from ALL of the rest of the numeric variables in your dataset (if you have 10+, OK to just pick 10).
+
+Train the model to the entire dataset and then use it to get predictions for all observations. Run the class_diag function or equivalent to get in-sample performance and interpret, including a discussion of how well the model is doing per AUC. Finally, report a confusion matrix.
+
+Perform k-fold CV on this same model (fine to use caret). Run the class_diag function or equivalent to get out-of-sample performance averaged across your k folds and discuss how well is your model predicting new observations per CV AUC.
 
 ```{R}
 # linear classifier code here
+fit <- glm(datafinal$SomeCollege ~ PoorMHdays + PoorPHdays + P.Obese + P.LAHF, data = datafinal, family = "binomial")
+fit
+score <- predict(fit, type = "response")
+score %>% round(3) #%>% max()
+
+#train 
+
+
+#in-sample performance 
+#class_diag(score, truth = datafinal$College, positive = 1) #same length? 
+
+# confusion matrix
+
+
+
 ```
 
 ```{R}
+#k-fold CV 
 # cross-validation of linear classifier here
 ```
+Discuss the results in a paragraph. How well is your model predicting new observations per CV AUC? Do you see signs of overfitting?
 
 Discussion here
 
+The maximum predicted probability was 0.695. 
+
 ### Non-Parametric Classifier
+Fit a non-parametric classifier (e.g., k-nearest-neighbors, classification tree) to the exact same dataset/variables you used with the linear classifier (same response variable too).
+
+Train the model to the entire dataset and then use it to get predictions for all observations. Run the class_diag function or equivalent to get in-sample performance and interpret, including a discussion of how well the model is doing per AUC. Finally, report a confusion matrix.
+
+Perform k-fold CV on this same model (fine to use caret). Run the class_diag function or equivalent to get out-of-sample performance averaged across your k folds.
 
 ```{R}
 library(caret)
 # non-parametric classifier code here
+
+
+#confusion matrix 
+#table(actual=, predicted=(prob_knn)>0.5) %>% addmargins() 
+
 ```
 
 ```{R}
 # cross-validation of np classifier here
 ```
+Discuss the results in a paragraph. How well is your model predicting new observations per CV AUC? Do you see signs of overfitting? How does your nonparametric model compare with the linear model in its cross-validation performance?
 
 Discussion
 
 
 ### Regression/Numeric Prediction
+Fit a linear regression model or regression tree to your entire dataset, predicting one of your numeric variables from at least 2 other variables
+
+Report the MSE for the overall dataset
+
+Perform k-fold CV on this same model (fine to use caret). Calculate the average MSE across your k testing folds.
 
 ```{R}
 # regression model code here
@@ -146,17 +212,29 @@ Discussion
 ```{R}
 # cross-validation of regression model here
 ```
+Does this model show signs of overfitting? Discussion the results in a paragraph
 
-Discussion
+Overfitting if mse is larger 
 
 ### Python 
 
 ```{R}
 library(reticulate)
+use_python("usr/bin/python3")
+#py_install("matplotlib")
+plot<- import("matplotlib")
+plot$use("Agg", force = TRUE)
+
 ```
 
 ```{python}
 # python code here
+import matplotlib.pyplot as plt
+import numpy as np 
+
+x=r.datafinal['P.Obese']
+y=r.datafinal['SomeCollege']
+plt.scatter(x,y)
 ```
 
 Discussion
